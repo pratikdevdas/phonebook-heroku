@@ -33,7 +33,7 @@ const person = new Person({
 })
 console.log(person)
 
-// If password, name and number are given as command-line arguments, add the person to the phonebook
+// CLI arguement additions
 if (process.argv.length === 5) {
   person.save().then(() => {
     console.log(`Added ${process.argv[3]} ${process.argv[4]} to phonebook`)
@@ -50,7 +50,7 @@ if (process.argv.length === 3) {
     mongoose.connection.close()
   })
 }
-
+       //here its important to close the connection in call back function because ... (ex 3.12 NB fullstack open)
 if (process.argv.length === 4 || process.argv.length > 5) {
   console.log(
     'Please provide the right number of arguments. If the name you are trying to add containes spaces, wrap it in quotes.',
