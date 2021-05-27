@@ -1,4 +1,6 @@
+require('dotenv').config()
 const { json } = require('express')
+const Person = require('./models/person')
 const morgan=require('morgan')
 const express = require('express')
 const cors = require('cors')
@@ -6,12 +8,12 @@ const app = express()
 
 app.use(express.static('build'))
 app.use(cors());
+
 //stackoverflow
 morgan.token('person', (req) => {
     if (req.method === 'POST') return JSON.stringify(req.body)
     return null
   })
-
   
 app.use(express.json())
 // app.use(morgan('tiny'))
@@ -21,52 +23,63 @@ app.use(
     ),
   )
 
-let persons = [
-    {   
-        id: 1,
-        name: "Arto Hellas",
-        number: "850384583085",
+// let persons = [
+//     {   
+//         id: 1,
+//         name: "Arto Hellas",
+//         number: "850384583085",
         
-      },
-      {
-        id: 2,
-        name: "Dan Ambrabov",
-        number: "435353534545",
+//       },
+//       {
+//         id: 2,
+//         name: "Dan Ambrabov",
+//         number: "435353534545",
         
-      },
-      {
-        id: 3,
-        name: "Ada Lovelace",
-        number: "880384435497",
+//       },
+//       {
+//         id: 3,
+//         name: "Ada Lovelace",
+//         number: "880384435497",
         
-      },
-      {
-        id: 4,
-        name: "Mary Poppendieck",
-        number: "88038408007",
+//       },
+//       {
+//         id: 4,
+//         name: "Mary Poppendieck",
+//         number: "88038408007",
         
-      }
-]
+//       }
+// ]
 
 //fetching home resource
 app.get('/', (request, response) => {
     response.send('<h1>Hello World!</h1>')
   })
   //fetching all resources
+  // app.get('/api/persons', (request, response) => {
+  //   response.json(persons)
+  // })
+
+  //fetching all resources mongo db
   app.get('/api/persons', (request, response) => {
-    response.json(persons)
+    Person.find({}).then(notes => {
+      response.json(notes)
+    })
   })
 
- //fetching a single resource 
+ //fetching a single resource
   app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(note => note.id === id)
-    if (person) {
+    Person.findById(request.params.id)
+    .then(person => {
+      if (person) {
         response.json(person)
       } else {
         response.status(404).end()
       }
-    response.json(person)
+    })
+    .catch(error => {
+      console.log(error)
+      response.status(400).send({error:"malformed error"})
+    })
   })
 
   //fetching local host info
@@ -79,18 +92,12 @@ app.get('/', (request, response) => {
   
      //fetching delete resource
      app.delete('/api/persons/:id', (request, response) => {
-        const id = Number(request.params.id)
-        persons = persons.filter(note => note.id !== id)
-        response.status(204).end()
+        Person.findByIdAndRemove(request.params.id)
+        .then(result=>{response.status(204).end()})
+        .catch(error=>next(error))
       })
+
    //receiving data adding new note
-   const generateId = () => {
-    const maxId = persons.length > 0
-    console.log(persons.length)
-      ? Math.floor(Math.random(...persons.map(n => n.id)) * 5)
-      : 0
-    return maxId + 1
-  }
   
   app.post('/api/persons', (request, response) => {
     const body = request.body
@@ -106,7 +113,7 @@ app.get('/', (request, response) => {
           error: 'content missing' 
         })
       }
- 
+   
      const name =  persons.map(note => note.name)
     //  console.log(name)
      const checkInclude = name.includes(body.name)
@@ -116,17 +123,30 @@ app.get('/', (request, response) => {
         })
       }
 
-    const addperson = {
+    const addperson = new Person({
       name: body.name,
       number: body.number,
-      id: generateId(),
-    }
+     
+    })
   
-    persons = persons.concat(addperson)
-    response.json(addperson)
+    addperson.save().then(savePerson => {
+    response.json(addperson)})
   })
- 
-  const PORT = process.env.PORT || 3001
+
+  const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } 
+  
+    next(error)
+  }
+  // this has to be the last loaded middleware.
+  app.use(errorHandler)
+
+
+  const PORT = process.env.PORT
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
   })
