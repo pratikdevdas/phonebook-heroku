@@ -7,7 +7,7 @@ const mongoose = require('mongoose')
 
 
 
-const url = `mongodb://fullstack:adelaide@cluster0-shard-00-00.sr3ja.mongodb.net:27017,cluster0-shard-00-01.sr3ja.mongodb.net:27017,cluster0-shard-00-02.sr3ja.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-t6qs9f-shard-0&authSource=admin&retryWrites=true&w=majority`
+const url = `mongodb://fullstack:worngpasswordxd@cluster0-shard-00-00.sr3ja.mongodb.net:27017,cluster0-shard-00-01.sr3ja.mongodb.net:27017,cluster0-shard-00-02.sr3ja.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-t6qs9f-shard-0&authSource=admin&retryWrites=true&w=majority`
 
 mongoose
   .connect(url, { useNewUrlParser: true, useUnifiedTopology: true })

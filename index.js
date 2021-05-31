@@ -4,6 +4,8 @@ const Person = require('./models/person')
 const morgan=require('morgan')
 const express = require('express')
 const cors = require('cors')
+const { findByIdAndRemove } = require('./models/person')
+const person = require('./models/person')
 const app = express()
 
 app.use(express.static('build'))
@@ -23,41 +25,13 @@ app.use(
     ),
   )
 
-// let persons = [
-//     {   
-//         id: 1,
-//         name: "Arto Hellas",
-//         number: "850384583085",
-        
-//       },
-//       {
-//         id: 2,
-//         name: "Dan Ambrabov",
-//         number: "435353534545",
-        
-//       },
-//       {
-//         id: 3,
-//         name: "Ada Lovelace",
-//         number: "880384435497",
-        
-//       },
-//       {
-//         id: 4,
-//         name: "Mary Poppendieck",
-//         number: "88038408007",
-        
-//       }
-// ]
-
 //fetching home resource
+//each app.use something is a route
 app.get('/', (request, response) => {
     response.send('<h1>Hello World!</h1>')
   })
-  //fetching all resources
-  // app.get('/api/persons', (request, response) => {
-  //   response.json(persons)
-  // })
+  
+
 
   //fetching all resources mongo db
   app.get('/api/persons', (request, response) => {
@@ -84,11 +58,11 @@ app.get('/', (request, response) => {
 
   //fetching local host info
   app.get('/info', (request, response) => {
-    const id = persons.map(person => person.id)
-    var d = new Date();
-    response.send('<div>Phonebook has info for '+id.length+' people</div>'+d);
-    console.log(response.send) 
-     })
+    const date = new Date();
+    Person.find({}).then(persons => { response.send('<div>Phonebook has info for '+persons.length+' people</div>'+date)});
+    console.log(response.send) })
+  
+    
   
      //fetching delete resource
      app.delete('/api/persons/:id', (request, response) => {
@@ -99,7 +73,7 @@ app.get('/', (request, response) => {
 
    //receiving data adding new note
   
-  app.post('/api/persons', (request, response) => {
+    app.post('/api/persons', (request, response, next) => {
     const body = request.body
   
     if (!body.name) {
@@ -114,14 +88,7 @@ app.get('/', (request, response) => {
         })
       }
    
-     const name =  persons.map(note => note.name)
-    //  console.log(name)
-     const checkInclude = name.includes(body.name)
-      if (checkInclude) {
-        return response.status(400).json({ 
-          error: 'name already exists' 
-        })
-      }
+   
 
     const addperson = new Person({
       name: body.name,
@@ -130,8 +97,24 @@ app.get('/', (request, response) => {
     })
   
     addperson.save().then(savePerson => {
-    response.json(addperson)})
+    response.json(savePerson.toJSON())})
+    .catch(error=>next(error))
   })
+
+  app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+  
+    const person = {
+      name: body.name,
+      number: body.number,
+    }
+  
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+      .then(updatePerson => {
+        response.json(updatePerson)
+      })
+      .catch(error => next(error))
+  }) 
 
   const errorHandler = (error, request, response, next) => {
     console.error(error.message)
@@ -139,7 +122,9 @@ app.get('/', (request, response) => {
     if (error.name === 'CastError') {
       return response.status(400).send({ error: 'malformatted id' })
     } 
-  
+    else if (error.name === 'ValidationError') {
+      return response.status(400).send({ error: error.message })
+    }
     next(error)
   }
   // this has to be the last loaded middleware.
